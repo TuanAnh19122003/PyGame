@@ -10,11 +10,11 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Plane Fighting Game')
 
 clock = pygame.time.Clock()
-player_image = pygame.image.load('player.png')
-enemy_image = pygame.image.load('enemy.png')
+player_image = pygame.image.load('image/player.png')
+enemy_image = pygame.image.load('image/enemy.png')
 
 # Tải hình nền
-background_image = pygame.image.load('background.png')
+background_image = pygame.image.load('image/background.png')
 background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
 
