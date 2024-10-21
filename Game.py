@@ -1,4 +1,4 @@
-import pygame 
+import pygame
 import random
 
 pygame.init()
@@ -17,7 +17,6 @@ enemy_image = pygame.image.load('image/enemy.png')
 background_image = pygame.image.load('image/background.png')
 background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
 
-
 bullet_image = pygame.Surface((10, 20))
 bullet_image.fill((255, 0, 0))
 
@@ -34,6 +33,8 @@ font = pygame.font.Font(None, 74)
 game_over_text = font.render('Game Over', True, (255, 0, 0))
 restart_text = font.render('Press R to Restart', True, (255, 255, 255))
 
+difficulty_increase = 0  # Tăng độ khó ban đầu
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -45,7 +46,7 @@ class Player(pygame.sprite.Sprite):
         self.shoot_delay = 250
         self.last_shot = pygame.time.get_ticks()
         self.defeated = False
-    
+
     def update(self):
         if self.defeated:
             return 
@@ -75,10 +76,9 @@ class Enemy(pygame.sprite.Sprite):
     def update(self):
         if player.defeated:
             return
-        self.rect.y += self.speed
+        self.rect.y += self.speed + difficulty_increase  # Tăng tốc độ theo độ khó
         if self.rect.top > screen_height:
             self.reset()
-        # Thay đổi từ collide_circle sang colliderect
         if self.rect.colliderect(player.rect):
             player.defeated = True
     
@@ -86,6 +86,16 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = random.randint(0, max(0, screen_width - self.rect.width))
         self.rect.y = random.randint(-100, -40)
         self.speed = random.randint(1, 3)
+
+class FastEnemy(Enemy):  # Kẻ thù nhanh
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((30, 30))
+        self.image.fill((255, 0, 255))  # Màu khác để phân biệt
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, screen_width - self.rect.width)
+        self.rect.y = random.randint(-100, -40)
+        self.speed = random.randint(4, 6)  # Tốc độ nhanh hơn
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -101,36 +111,73 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
+class PowerUp(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((30, 30))
+        self.image.fill((0, 255, 0))  # Màu xanh cho power-up
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, screen_width - self.rect.width)
+        self.rect.y = random.randint(-100, -40)
+        self.speed = 2
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.top > screen_height:
+            self.kill()  # Xóa power-up khi vượt quá màn hình
+
+def increase_difficulty():
+    global difficulty_increase
+    difficulty_increase += 0.01  # Tăng độ khó từ từ theo thời gian
+
 def reset_game():
-    global player, all_sprites, enemies, bullets, game_over
+    global player, all_sprites, enemies, bullets, powerups, game_over
     player = Player()
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
     enemies = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
+    powerups = pygame.sprite.Group()
     
-    for _ in range(10):
+    for _ in range(7):
         enemy = Enemy()
         all_sprites.add(enemy)
         enemies.add(enemy)
+    
+    for _ in range(3):  # Thêm kẻ thù nhanh
+        fast_enemy = FastEnemy()
+        all_sprites.add(fast_enemy)
+        enemies.add(fast_enemy)
 
-    game_over = False  # Đặt game_over về False khi khởi động lại
+    for _ in range(3):  # Số lượng power-up
+        powerup = PowerUp()
+        all_sprites.add(powerup)
+        powerups.add(powerup)
+
+    game_over = False
+    global difficulty_increase
+    difficulty_increase = 0  # Đặt lại độ khó khi khởi động lại
 
 player = Player()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 enemies = pygame.sprite.Group()
 
-for _ in range(10):
+for _ in range(7):
     enemy = Enemy()
     all_sprites.add(enemy)
     enemies.add(enemy)
 
+for _ in range(3):
+    fast_enemy = FastEnemy()
+    all_sprites.add(fast_enemy)
+    enemies.add(fast_enemy)
+
 bullets = pygame.sprite.Group()
+powerups = pygame.sprite.Group()
 
 running = True
 game_over = False
-
 score = 0
 
 while running:
@@ -145,38 +192,38 @@ while running:
         for hit_enemy in hits:
             explosion_sound.play()  # Phát âm thanh nổ khi tiêu diệt kẻ thù
             score += 100
-            enemy = Enemy()
+            enemy = Enemy()  # Thêm kẻ thù mới sau khi tiêu diệt
             all_sprites.add(enemy)
             enemies.add(enemy)
 
-        # Vẽ hình nền trước
+        powerup_hits = pygame.sprite.spritecollide(player, powerups, True)  # Kiểm tra nhặt power-up
+        for hit_powerup in powerup_hits:
+            player.shoot_delay = 100  # Tăng tốc độ bắn khi nhặt power-up
+
+        increase_difficulty()  # Tăng độ khó theo thời gian
+
         screen.blit(background_image, (0, 0))
-        # Vẽ tất cả các đối tượng
         all_sprites.draw(screen)
         
         score_text = font.render(f'Score: {score}', True, (255, 255, 255))  # Vẽ điểm số
-        screen.blit(score_text, (10, 10))  # Vị trí hiển thị điểm
+        screen.blit(score_text, (10, 10))
 
-        # Kiểm tra va chạm
         if pygame.sprite.spritecollideany(player, enemies):  # Kiểm tra va chạm giữa player và enemies
             player.defeated = True
             game_over = True
             game_over_music.play() 
     else:
-        # Hiển thị thông báo Game Over
-        screen.blit(background_image, (0, 0))  # Vẽ lại hình nền
+        screen.blit(background_image, (0, 0))
         screen.blit(game_over_text, (screen_width // 4, screen_height // 4))
         screen.blit(restart_text, (screen_width // 10, screen_height // 2.5))
         
-        # Hiển thị điểm cuối
         game_over_score_text = font.render(f'Final Score: {score}', True, (255, 255, 255))
-        game_over_score_rect = game_over_score_text.get_rect(center=(screen_width // 2, screen_height // 2 + 50))  # Tăng khoảng cách
+        game_over_score_rect = game_over_score_text.get_rect(center=(screen_width // 2, screen_height // 2 + 50))
         screen.blit(game_over_score_text, game_over_score_rect)
 
-        
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_r]:  # Nhấn R để chơi lại
-            reset_game()  # Khởi động lại trò chơi
+        if keys[pygame.K_r]:
+            reset_game()
             score = 0
 
     pygame.display.flip()
