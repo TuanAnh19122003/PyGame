@@ -87,16 +87,6 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.y = random.randint(-100, -40)
         self.speed = random.randint(1, 3)
 
-class FastEnemy(Enemy):  # Kẻ thù nhanh
-    def __init__(self):
-        super().__init__()
-        self.image = pygame.Surface((30, 30))
-        self.image.fill((255, 0, 255))  # Màu khác để phân biệt
-        self.rect = self.image.get_rect()
-        self.rect.x = random.randint(0, screen_width - self.rect.width)
-        self.rect.y = random.randint(-100, -40)
-        self.speed = random.randint(4, 6)  # Tốc độ nhanh hơn
-
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -143,11 +133,6 @@ def reset_game():
         enemy = Enemy()
         all_sprites.add(enemy)
         enemies.add(enemy)
-    
-    for _ in range(3):  # Thêm kẻ thù nhanh
-        fast_enemy = FastEnemy()
-        all_sprites.add(fast_enemy)
-        enemies.add(fast_enemy)
 
     for _ in range(3):  # Số lượng power-up
         powerup = PowerUp()
@@ -167,11 +152,6 @@ for _ in range(7):
     enemy = Enemy()
     all_sprites.add(enemy)
     enemies.add(enemy)
-
-for _ in range(3):
-    fast_enemy = FastEnemy()
-    all_sprites.add(fast_enemy)
-    enemies.add(fast_enemy)
 
 bullets = pygame.sprite.Group()
 powerups = pygame.sprite.Group()
